@@ -1,7 +1,7 @@
 defmodule Doraemon do
   use Nostrum.Consumer
-  require Logger
   alias Nostrum.Api
+  require Logger
 
   @ch_log 533365934354726922
 
@@ -9,6 +9,7 @@ defmodule Doraemon do
     Consumer.start_link(__MODULE__)
   end
 
+  # Convert messages list into message_ids list
   defp get_message_ids(%Nostrum.Struct.Message{channel_id: channel_id}, limit \\ 100) do
     case Api.get_channel_messages(channel_id, limit) do
       {:ok, messages} -> messages |> Enum.map(fn(m) -> m.id end)
@@ -16,6 +17,7 @@ defmodule Doraemon do
     end
   end
 
+  # Handle command
   def handle_event({:MESSAGE_CREATE, {msg}, ws_state}) do
     case msg.content do
       << ?p, ?l, ?a, ?y, ?\s, song :: binary >> -> 
@@ -44,6 +46,7 @@ defmodule Doraemon do
     end
   end
 
+  # Send cleaning messages log in general channel to log channel
   def handle_event({:MESSAGE_DELETE_BULK, {updated_messages}, _ws_state}) do
     Api.create_message(@ch_log, "Finish cleaning up #{Enum.count(updated_messages.ids) - 1} messages.")
   end
@@ -52,13 +55,6 @@ defmodule Doraemon do
 
   defp print_status(action, status) do
     Logger.info "#{action}: #{status}"
-  end
-
-  def handle_event({:MESSAGE_CREATE, {msg}, ws_state}) do
-    case msg.content do
-      "ping" -> Api.create_message(msg.channel_id, "pong!")
-        _ -> :ignore
-    end
   end
 
   def handle_event(_noop) do
